@@ -74,8 +74,9 @@ def scrape_cpu(url, conn, cur):
 
     tables = soup.find_all("section", class_="details")
 
+    name = soup.find("h1", class_="cpuname").text
     keys = "('Name', "
-    values = "('{}', ".format(soup.find("h1", class_="cpuname").text)
+    values = f"('{name}', "
 
     for table in tables[:-1]:
         for key, value in zip(table.find_all("th"), table.find_all("td")):
@@ -91,20 +92,24 @@ def scrape_cpu(url, conn, cur):
             keys += f"'{key}', "
             values += f"'{value}', "
 
-    query = '''
-    insert into cpus{} values {}; 
-    '''.format(keys[:-2] + ")", values[:-2] + ")")
+    cur.execute(f'''SELECT 1 FROM cpus WHERE name='{name}';''')
+    if cur.fetchone() is None:
+        query = '''
+        insert or ignore into cpus{} values {}; 
+        '''.format(keys[:-2] + ")", values[:-2] + ")")
 
-    cur.execute(query)
+        cur.execute(query)
+
+        print("cpu scraped!")
+    else:
+        print("cpu already exists!")
 
     conn.commit()
-
-    print("cpu scraped!")
 
 
 class Database:
     def __init__(self):
-        self.conn = sqlite3.connect("data.db")
+        self.conn = sqlite3.connect("cpus.db")
         self.cur = self.conn.cursor()
 
         self.cur.execute('''
@@ -124,8 +129,16 @@ class Database:
 
 
 with Database() as db:
-    for cpu in get_all_cpu_urls():
-        try:
-            scrape_cpu(cpu, *db)
-        except Exception as e:
-            print(f"ERROR: {cpu} - {e}")
+    with open("missed.txt", "w") as file:
+        for cpu in ["/cpu-specs/ryzen-5-5500.c2756"]:
+            retries = 2
+            while retries > 0:
+                try:
+                    scrape_cpu(cpu, *db)
+                except Exception as e:
+                    print(f"ERROR: ({4 - retries}) {cpu} - {e}")
+                    retries -= 1
+                    if retries == 0:
+                        file.write(f"{cpu} {e}\n")
+                else:
+                    break
