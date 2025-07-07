@@ -130,7 +130,7 @@ class Database:
 
 with Database() as db:
     with open("missed.txt", "w") as file:
-        for cpu in ["/cpu-specs/ryzen-5-5500.c2756"]:
+        for cpu in get_all_cpu_urls():
             retries = 2
             while retries > 0:
                 try:
