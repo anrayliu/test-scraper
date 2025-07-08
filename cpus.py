@@ -129,7 +129,7 @@ class Database:
 
 
 with Database() as db:
-    with open("missed.txt", "w") as file:
+    with open("missed_cpus.txt", "w") as file:
         for cpu in get_all_cpu_urls():
             retries = 2
             while retries > 0:
