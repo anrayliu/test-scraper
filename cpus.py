@@ -13,7 +13,7 @@ def make_request(url, retries=3):
             r = requests.get(url)
             time.sleep(WAIT)
             if not r.ok:
-                raise Exception("Something went wrong, status " + r.status_code)
+                raise Exception("Something went wrong, status " + str(r.status_code))
         except Exception as e:
             if i == retries - 1:
                 raise e
