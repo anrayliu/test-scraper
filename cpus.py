@@ -4,8 +4,22 @@ import sqlite3
 import time
 import re
 
-WAIT = 60
+WAIT = 30
 
+
+def make_request(url, retries=3):
+    for i in range(retries):
+        try:
+            r = requests.get(url)
+            time.sleep(WAIT)
+            if not r.ok:
+                raise Exception("Something went wrong, status " + r.status_code)
+        except Exception as e:
+            if i == retries - 1:
+                raise e
+            print("retrying...")
+        else:
+            return r
 
 def get_codenames():
     print("getting codenames...")
@@ -13,15 +27,14 @@ def get_codenames():
     CPU_GROUPS = "https://www.techpowerup.com/cpu-specs/?f=codename"
     codenames = []
 
-    r = requests.get(CPU_GROUPS)
-    time.sleep(WAIT)
-    if r.ok:
-        soup = BeautifulSoup(r.text, "html.parser")
+    r = make_request(CPU_GROUPS)
 
-        dropdown = soup.find("select", class_="filter-options-dropdown")
+    soup = BeautifulSoup(r.text, "html.parser")
 
-        for line in dropdown.text.splitlines()[2:]:
-            codenames.append(" ".join(line.split(" ")[:-1]))
+    dropdown = soup.find("select", class_="filter-options-dropdown")
+
+    for line in dropdown.text.splitlines()[2:]:
+        codenames.append(" ".join(line.split(" ")[:-1]))
 
     print(f"found {len(codenames)} codenames")
 
@@ -34,16 +47,15 @@ def get_urls_from_codename(codename):
     CODENAME_QUERY = "https://www.techpowerup.com/cpu-specs/?f=codename_"
     urls = []
 
-    r = requests.get(CODENAME_QUERY + codename)
-    time.sleep(WAIT)
-    if r.ok:
-        soup = BeautifulSoup(r.text, "html.parser")
+    r = make_request(CODENAME_QUERY + codename)
 
-        urls = []
+    soup = BeautifulSoup(r.text, "html.parser")
 
-        items = soup.find_all("div", class_="item-title")
-        for item in items:
-            urls.append(item.find("a").attrs["href"])
+    urls = []
+
+    items = soup.find_all("div", class_="item-title")
+    for item in items:
+        urls.append(item.find("a").attrs["href"])
 
     print(f"found {len(urls)} urls")
 
@@ -65,10 +77,7 @@ def scrape_cpu(url, conn, cur):
 
     DOMAIN = "https://www.techpowerup.com/"
 
-    r = requests.get(DOMAIN + url)
-    time.sleep(WAIT)
-    if not r.ok:
-        raise Exception("Something went wrong")
+    r = make_request(DOMAIN + url)
 
     soup = BeautifulSoup(r.text, "html.parser")
 
@@ -131,14 +140,8 @@ class Database:
 with Database() as db:
     with open("missed_cpus.txt", "w") as file:
         for cpu in get_all_cpu_urls():
-            retries = 2
-            while retries > 0:
-                try:
-                    scrape_cpu(cpu, *db)
-                except Exception as e:
-                    print(f"ERROR: ({4 - retries}) {cpu} - {e}")
-                    retries -= 1
-                    if retries == 0:
-                        file.write(f"{cpu} {e}\n")
-                else:
-                    break
+            try:
+                scrape_cpu(cpu, *db)
+            except Exception as e:
+                print(f"ERROR: {cpu} - {e}")
+                file.write(f"{cpu} - {e}\n")
