@@ -130,11 +130,16 @@ class Database:
         self.conn.close()
 
 
-with Database() as db:
-    with open("missed_cpus.txt", "w") as file:
-        for cpu in get_all_cpu_urls():
-            try:
-                scrape_cpu(cpu, *db)
-            except Exception as e:
-                print(f"ERROR: {cpu} - {e}")
-                file.write(f"{cpu} - {e}\n")
+if __name__ == "__main__":
+    start_time = time.time()
+
+    with Database() as db:
+        with open("missed_cpus.txt", "w") as file:
+            for cpu in get_all_cpu_urls():
+                try:
+                    scrape_cpu(cpu, *db)
+                except Exception as e:
+                    print(f"ERROR: {cpu} - {e}")
+                    file.write(f"{cpu} - {e}\n")
+
+    print(f"Scrape duration: {time.time() - start_time}")
