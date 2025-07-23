@@ -4,7 +4,7 @@ import sqlite3
 import time
 import re
 
-WAIT = 6
+WAIT = 61
 
 
 def get_generations():
@@ -15,12 +15,14 @@ def get_generations():
 
     r = requests.get(HOME_PAGE)
     time.sleep(WAIT)
-    if r.ok:
-        soup = BeautifulSoup(r.text, "html.parser")
+    if not r.ok:
+        raise RuntimeError("could not get generations, status " + str(r.status_code))
 
-        dropdown = soup.find("select", id="generation")
-        for gpu in dropdown.find_all("option")[1:]:
-            generations.append(gpu.attrs["value"])
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    dropdown = soup.find("select", id="generation")
+    for gpu in dropdown.find_all("option")[1:]:
+        generations.append(gpu.attrs["value"])
 
     print(f"found {len(generations)} generations")
 
@@ -35,14 +37,16 @@ def get_urls_from_generation(codename):
 
     r = requests.get(CODENAME_QUERY + codename)
     time.sleep(WAIT)
-    if r.ok:
-        soup = BeautifulSoup(r.text, "html.parser")
+    if not r.ok:
+        raise RuntimeError("could not get urls from generations, status " + str(r.status_code))
 
-        urls = []
+    soup = BeautifulSoup(r.text, "html.parser")
 
-        items = soup.find_all("td", class_="vendor-ATI")
-        for item in items:
-            urls.append(item.find("a").attrs["href"])
+    urls = []
+
+    items = soup.find_all("td", class_="vendor-ATI")
+    for item in items:
+        urls.append(item.find("a").attrs["href"])
 
     print(f"found {len(urls)} urls")
 
@@ -67,7 +71,7 @@ def scrape_gpu(url, conn, cur):
     r = requests.get(DOMAIN + url)
     time.sleep(WAIT)
     if not r.ok:
-        raise Exception("Something went wrong")
+        raise RuntimeError("could not scrape gpu, status " + str(r.status_code))
 
     soup = BeautifulSoup(r.text, "html.parser")
 

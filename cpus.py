@@ -4,22 +4,7 @@ import sqlite3
 import time
 import re
 
-WAIT = 30
-
-
-def make_request(url, retries=3):
-    for i in range(retries):
-        try:
-            r = requests.get(url)
-            time.sleep(WAIT)
-            if not r.ok:
-                raise Exception("Something went wrong, status " + r.status_code)
-        except Exception as e:
-            if i == retries - 1:
-                raise e
-            print("retrying...")
-        else:
-            return r
+WAIT = 61
 
 def get_codenames():
     print("getting codenames...")
@@ -27,7 +12,10 @@ def get_codenames():
     CPU_GROUPS = "https://www.techpowerup.com/cpu-specs/?f=codename"
     codenames = []
 
-    r = make_request(CPU_GROUPS)
+    r = requests.get(CPU_GROUPS)
+    time.sleep(WAIT)
+    if not r.ok:
+        raise RuntimeError("could not get code names, status " + str(r.status_code))
 
     soup = BeautifulSoup(r.text, "html.parser")
 
@@ -45,9 +33,11 @@ def get_urls_from_codename(codename):
     print("getting cpu urls...")
 
     CODENAME_QUERY = "https://www.techpowerup.com/cpu-specs/?f=codename_"
-    urls = []
 
-    r = make_request(CODENAME_QUERY + codename)
+    r = requests.get(CODENAME_QUERY)
+    time.sleep(WAIT)
+    if not r.ok:
+        raise RuntimeError("could not get urls from code names, status " + str(r.status_code))
 
     soup = BeautifulSoup(r.text, "html.parser")
 
@@ -77,7 +67,10 @@ def scrape_cpu(url, conn, cur):
 
     DOMAIN = "https://www.techpowerup.com/"
 
-    r = make_request(DOMAIN + url)
+    r = requests.get(DOMAIN + url)
+    time.sleep(WAIT)
+    if not r.ok:
+        raise RuntimeError("could not scrape cpu, status " + str(r.status_code))
 
     soup = BeautifulSoup(r.text, "html.parser")
 
