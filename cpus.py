@@ -34,7 +34,7 @@ def get_urls_from_codename(codename):
 
     CODENAME_QUERY = "https://www.techpowerup.com/cpu-specs/?f=codename_"
 
-    r = requests.get(CODENAME_QUERY)
+    r = requests.get(CODENAME_QUERY + codename)
     time.sleep(WAIT)
     if not r.ok:
         raise RuntimeError("could not get urls from code names, status " + str(r.status_code))
@@ -47,7 +47,7 @@ def get_urls_from_codename(codename):
     for item in items:
         urls.append(item.find("a").attrs["href"])
 
-    print(f"found {len(urls)} urls")
+    print(f"found {len(urls)} urls from {codename}")
 
     return urls
 
@@ -63,7 +63,7 @@ def get_all_cpu_urls():
 
 
 def scrape_cpu(url, conn, cur):
-    print("scraping cpu...")
+    print(f"scraping cpu {url}...")
 
     DOMAIN = "https://www.techpowerup.com/"
 
